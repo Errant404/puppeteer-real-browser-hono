@@ -80,17 +80,25 @@ async function fetchSingleUrl(
   try {
     await page.goto(url, goToOptions);
 
+    let verified = false;
+
     if (selector) {
       const startDate = Date.now();
       while (Date.now() - startDate < (goToOptions.timeout || 30000)) {
         const res = await page.$(selector);
-        console.log(`Checking for selector "${selector}" on ${url}:`, !!res);
         if (res) {
+          verified = true;
           break;
         }
 
         await new Promise((r) => setTimeout(r, 1000));
       }
+    }
+
+    if (selector && !verified) {
+      throw new Error(
+        `Selector "${selector}" not found on ${url} within timeout`
+      );
     }
 
     const content = await page.content();
