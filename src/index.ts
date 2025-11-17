@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { getPageContent } from "./lib.js";
+import { getPageContent, closeBrowser } from "./lib.js";
 import { responseCache } from "./cache.js";
 
 const app = new Hono();
@@ -52,3 +52,13 @@ serve(
     console.log(`Server is running on http://localhost:${info.port}`);
   }
 );
+
+// Handle graceful shutdown
+const cleanup = async () => {
+  console.log("\nReceived shutdown signal, cleaning up...");
+  await closeBrowser();
+  process.exit(0);
+};
+
+process.on("SIGINT", cleanup);
+process.on("SIGTERM", cleanup);

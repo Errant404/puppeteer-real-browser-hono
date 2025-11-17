@@ -60,6 +60,20 @@ async function getBrowser(): Promise<{
   };
 }
 
+export async function closeBrowser(): Promise<void> {
+  if (browserInstance) {
+    console.log("Closing browser...");
+    try {
+      await browserInstance.close();
+      browserInstance = null;
+      blocker = null;
+      console.log("Browser closed successfully");
+    } catch (error) {
+      console.error("Error closing browser:", error);
+    }
+  }
+}
+
 export type Options = {
   url: string | string[];
   selector?: string;
