@@ -75,9 +75,11 @@ async function fetchSingleUrl(
   await pageSemaphore.acquire();
   console.log(`Acquired lock for ${url}`);
 
-  const page = await browser.newPage();
-  await blocker.enableBlockingInPage(page as any);
+  let page;
   try {
+    page = await browser.newPage();
+    await blocker.enableBlockingInPage(page as any);
+
     await page.goto(url, goToOptions);
 
     let verified = false;
@@ -85,6 +87,12 @@ async function fetchSingleUrl(
     if (selector) {
       const startDate = Date.now();
       while (Date.now() - startDate < (goToOptions.timeout || 30000)) {
+        if (page.isClosed()) {
+          throw new Error(
+            `Page closed unexpectedly while waiting for selector`
+          );
+        }
+
         const res = await page.$(selector);
         if (res) {
           verified = true;
@@ -107,15 +115,18 @@ async function fetchSingleUrl(
     console.error(`Failed to fetch ${url}:`, error);
     throw error;
   } finally {
-    await page
-      .close()
-      .catch((err) => {
+    if (page) {
+      try {
+        if (!page.isClosed()) {
+          await page.close();
+        }
+      } catch (err) {
         console.error(`Failed to close page for ${url}:`, err);
-      })
-      .finally(() => {
-        pageSemaphore.release();
-        console.log(`Released lock for ${url}`);
-      });
+      }
+    }
+
+    pageSemaphore.release();
+    console.log(`Released lock for ${url}`);
   }
 }
 
