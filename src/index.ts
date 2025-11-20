@@ -8,12 +8,19 @@ const app = new Hono();
 app.get("/", async (c) => {
   try {
     const queryParams = c.req.query();
-    const { url, ...options } = queryParams;
+    const { url, selector, ...options } = queryParams;
 
     if (!url) {
       return c.json({
         success: false,
         error: "URL parameter is required",
+      });
+    }
+
+    if (!selector) {
+      return c.json({
+        success: false,
+        error: "selector parameter is required",
       });
     }
 
@@ -23,7 +30,7 @@ app.get("/", async (c) => {
     if (result) {
       fromCache = true;
     } else {
-      result = await getPageContent({ url, ...options });
+      result = await getPageContent({ url, selector, ...options });
       responseCache.set(url, options, result);
     }
 

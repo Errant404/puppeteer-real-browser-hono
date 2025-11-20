@@ -74,13 +74,13 @@ export async function closeBrowser(): Promise<void> {
 
 export type Options = {
   url: string | string[];
-  selector?: string;
+  selector: string;
 } & GoToOptions;
 
 async function tryGetHtmlFromResponse(
   page: Page,
   url: string,
-  selector: string | undefined,
+  selector: string,
   timeout: number
 ): Promise<string> {
   return new Promise<string>((resolve, reject) => {
@@ -92,13 +92,8 @@ async function tryGetHtmlFromResponse(
         if (responseUrl === url && contentType.includes("text/html")) {
           const text = await response.text();
 
-          if (selector) {
-            const $ = load(text);
-            if ($(selector).length > 0) {
-              page.off("response", responseHandler);
-              resolve(text);
-            }
-          } else {
+          const $ = load(text);
+          if ($(selector).length > 0) {
             page.off("response", responseHandler);
             resolve(text);
           }
@@ -120,30 +115,28 @@ async function tryGetHtmlFromResponse(
 async function getHtmlFromPageContent(
   page: Page,
   url: string,
-  selector: string | undefined,
+  selector: string,
   timeout: number
 ): Promise<string> {
-  if (selector) {
-    const startDate = Date.now();
-    while (Date.now() - startDate < timeout) {
-      if (page.isClosed()) {
-        throw new Error(`Page closed unexpectedly while waiting for selector`);
-      }
-
-      const res = await page.$(selector);
-      if (res) {
-        break;
-      }
-
-      await new Promise((r) => setTimeout(r, 1000));
+  const startDate = Date.now();
+  while (Date.now() - startDate < timeout) {
+    if (page.isClosed()) {
+      throw new Error(`Page closed unexpectedly while waiting for selector`);
     }
 
     const res = await page.$(selector);
-    if (!res) {
-      throw new Error(
-        `Selector "${selector}" not found on ${url} within timeout`
-      );
+    if (res) {
+      break;
     }
+
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+
+  const res = await page.$(selector);
+  if (!res) {
+    throw new Error(
+      `Selector "${selector}" not found on ${url} within timeout`
+    );
   }
 
   const content = await page.content();
@@ -154,7 +147,7 @@ async function fetchSingleUrl(
   browser: Browser,
   blocker: PuppeteerBlocker,
   url: string,
-  selector: string | undefined,
+  selector: string,
   goToOptions: GoToOptions
 ): Promise<string> {
   console.log(`Fetching URL: ${url}`);
