@@ -82,14 +82,19 @@ async function tryGetHtmlFromResponse(
   url: string,
   selector: string,
   timeout: number
-): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
+) {
+  return new Promise<string | null>((resolve, reject) => {
     const responseHandler = async (response: HTTPResponse) => {
       try {
         const responseUrl = response.url();
         const contentType = response.headers()["content-type"] || "";
+        const resourceType = response.request().resourceType();
 
-        if (responseUrl === url && contentType.includes("text/html")) {
+        if (
+          responseUrl === url &&
+          resourceType === "document" &&
+          (contentType.includes("text/html") || !contentType)
+        ) {
           const text = await response.text();
 
           const $ = load(text);
@@ -107,7 +112,7 @@ async function tryGetHtmlFromResponse(
 
     setTimeout(() => {
       page.off("response", responseHandler);
-      reject(new Error(`Timeout waiting for response from ${url}`));
+      resolve(null);
     }, timeout);
   });
 }
@@ -172,7 +177,13 @@ async function fetchSingleUrl(
       return await getHtmlFromPageContent(currentPage, url, selector, timeout);
     });
 
-    const content = await Promise.race([responsePromise, gotoPromise]);
+    const content = await Promise.race([
+      responsePromise.then((res) => {
+        if (!res) return gotoPromise;
+        return res;
+      }),
+      gotoPromise,
+    ]);
 
     return content;
   } catch (error) {
