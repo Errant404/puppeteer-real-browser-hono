@@ -83,7 +83,7 @@ async function tryGetHtmlFromResponse(
   selector: string,
   timeout: number
 ) {
-  return new Promise<string | null>((resolve) => {
+  return new Promise<string>((resolve, reject) => {
     const responseHandler = async (response: HTTPResponse) => {
       try {
         const responseUrl = response.url();
@@ -105,6 +105,9 @@ async function tryGetHtmlFromResponse(
           const $ = load(text);
           if ($(selector).length > 0) {
             page.off("response", responseHandler);
+            console.log(
+              `(tryGetHtmlFromResponse): Found selector "${selector}" in response for ${url}`
+            );
             resolve(text);
           }
         }
@@ -117,7 +120,11 @@ async function tryGetHtmlFromResponse(
 
     setTimeout(() => {
       page.off("response", responseHandler);
-      resolve(null);
+      reject(
+        new Error(
+          `(tryGetHtmlFromResponse): Timeout waiting for selector "${selector}" on page ${url}`
+        )
+      );
     }, timeout);
   });
 }
@@ -128,6 +135,7 @@ async function getHtmlFromPageContent(
   selector: string,
   timeout: number
 ): Promise<string> {
+  let verified = false;
   const startDate = Date.now();
   while (Date.now() - startDate < timeout) {
     if (page.isClosed()) {
@@ -136,20 +144,23 @@ async function getHtmlFromPageContent(
 
     const res = await page.$(selector);
     if (res) {
+      verified = true;
       break;
     }
 
     await new Promise((r) => setTimeout(r, 1000));
   }
 
-  const res = await page.$(selector);
-  if (!res) {
+  if (!verified) {
     throw new Error(
-      `Selector "${selector}" not found on ${url} within timeout`
+      `(getHtmlFromPageContent): Timeout waiting for selector "${selector}" on page ${url}`
     );
   }
 
   const content = await page.content();
+  console.log(
+    `(getHtmlFromPageContent): Found selector "${selector}" in page content for ${url}`
+  );
   return content;
 }
 
@@ -160,11 +171,11 @@ async function fetchSingleUrl(
   selector: string,
   goToOptions: GoToOptions
 ): Promise<string> {
-  console.log(`Fetching URL: ${url}`);
   await pageSemaphore.acquire();
 
   let page: Page | undefined;
   try {
+    console.log(`Fetching URL: ${url}`);
     page = await browser.newPage();
     await blocker.enableBlockingInPage(page as any);
 
@@ -182,13 +193,7 @@ async function fetchSingleUrl(
       return await getHtmlFromPageContent(currentPage, url, selector, timeout);
     });
 
-    const content = await Promise.race([
-      responsePromise.then((res) => {
-        if (!res) return gotoPromise;
-        return res;
-      }),
-      gotoPromise,
-    ]);
+    const content = await Promise.any([responsePromise, gotoPromise]);
 
     return content;
   } catch (error) {
