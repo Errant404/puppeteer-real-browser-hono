@@ -197,7 +197,6 @@ async function fetchSingleUrl(
 
     return content;
   } catch (error) {
-    console.error(`Failed to fetch ${url}:`, error);
     throw error;
   } finally {
     if (page) {
@@ -214,6 +213,48 @@ async function fetchSingleUrl(
   }
 }
 
+async function fetchSingleUrlWithRetry(
+  browser: Browser,
+  blocker: PuppeteerBlocker,
+  url: string,
+  selector: string,
+  goToOptions: GoToOptions,
+  maxRetries: number = 3
+): Promise<string> {
+  let lastError: Error | unknown;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt}/${maxRetries} for ${url}`);
+      const content = await fetchSingleUrl(
+        browser,
+        blocker,
+        url,
+        selector,
+        goToOptions
+      );
+      return content;
+    } catch (error) {
+      lastError = error;
+
+      if (attempt === maxRetries) {
+        console.error(
+          `Failed to fetch ${url} after ${maxRetries} attempts:`,
+          error
+        );
+        throw error;
+      }
+
+      // Wait before retrying (exponential backoff)
+      const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+      console.log(`Retrying in ${waitTime}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+    }
+  }
+
+  throw lastError;
+}
+
 export async function getPageContent(options: Options) {
   const { url, selector, ...goToOptions } = options;
   const { browser, blocker } = await getBrowser();
@@ -222,7 +263,13 @@ export async function getPageContent(options: Options) {
 
   const results = await Promise.all(
     urls.map((currentUrl) =>
-      fetchSingleUrl(browser, blocker, currentUrl, selector, goToOptions)
+      fetchSingleUrlWithRetry(
+        browser,
+        blocker,
+        currentUrl,
+        selector,
+        goToOptions
+      )
     )
   );
 
