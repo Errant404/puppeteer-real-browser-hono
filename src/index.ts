@@ -18,11 +18,33 @@ const shouldReturnRaw = (rawParam?: string | string[]) => {
   );
 };
 
+const shouldEnableAdblock = (adblockParam?: string | string[]) => {
+  const adblockValue = Array.isArray(adblockParam)
+    ? adblockParam[0]
+    : adblockParam;
+  if (adblockValue === undefined) {
+    return true;
+  }
+
+  const normalizedAdblockValue = adblockValue.toLowerCase();
+  return (
+    normalizedAdblockValue !== "false" &&
+    normalizedAdblockValue !== "0"
+  );
+};
+
 app.get("/", async (c) => {
   try {
     const queryParams = c.req.query();
-    const { url, selector, raw: rawParam, ...options } = queryParams;
+    const {
+      url,
+      selector,
+      raw: rawParam,
+      adblock: adblockParam,
+      ...options
+    } = queryParams;
     const returnRaw = shouldReturnRaw(rawParam);
+    const enableAdblock = shouldEnableAdblock(adblockParam);
 
     if (!url) {
       return c.json({
@@ -58,15 +80,21 @@ app.get("/", async (c) => {
       });
     }
 
-    let result = responseCache.get(url, options);
+    const cacheOptions = { ...options, adblock: enableAdblock };
+    let result = responseCache.get(url, cacheOptions);
     let fromCache = false;
 
     if (!returnRaw) {
       if (result) {
         fromCache = true;
       } else {
-        result = await getPageContent({ url, selector, ...options });
-        responseCache.set(url, options, result);
+        result = await getPageContent({
+          url,
+          selector,
+          adblock: enableAdblock,
+          ...options,
+        });
+        responseCache.set(url, cacheOptions, result);
       }
 
       return c.json({
@@ -76,7 +104,11 @@ app.get("/", async (c) => {
       });
     }
 
-    const rawResponse = await getRawResponse({ url, ...options });
+    const rawResponse = await getRawResponse({
+      url,
+      adblock: enableAdblock,
+      ...options,
+    });
     const headers = rawResponse.contentType
       ? { "Content-Type": rawResponse.contentType }
       : undefined;

@@ -76,6 +76,7 @@ GET /
 | `timeout`   | number             | No       | Navigation timeout in milliseconds (default: 30000)                                                        |
 | `waitUntil` | string             | No       | When to consider navigation succeeded. Options: `load`, `domcontentloaded`, `networkidle0`, `networkidle2` |
 | `raw`       | string             | No       | When set to any value except `false` or `0` (case-insensitive), returns the original response body (cannot be used with `selector`) |
+| `adblock`   | string             | No       | Enable or disable ad blocking. Set to `false` or `0` to disable (default: enabled).                        |
 
 ### Examples
 
@@ -117,6 +118,20 @@ Return the original response body:
 
 ```bash
 curl "http://localhost:3000?url=https://example.com&raw=1"
+```
+
+#### Disable Ad Blocking
+
+Some sites block content when ad blockers are detected. Disable the ad blocker for a request:
+
+```bash
+curl "http://localhost:3000?url=https://example.com&raw=1&adblock=0"
+```
+
+Disable ad blocking for selector-based requests:
+
+```bash
+curl "http://localhost:3000?url=https://example.com&selector=.main-content&adblock=0"
 ```
 
 ### Response Format

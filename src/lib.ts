@@ -75,6 +75,7 @@ export async function closeBrowser(): Promise<void> {
 export type Options = {
   url: string | string[];
   selector: string;
+  adblock?: boolean;
 } & GoToOptions;
 
 export type RawResponse = {
@@ -175,7 +176,8 @@ async function fetchSingleUrl(
   blocker: PuppeteerBlocker,
   url: string,
   selector: string,
-  goToOptions: GoToOptions
+  goToOptions: GoToOptions,
+  enableAdblock: boolean
 ): Promise<string> {
   await pageSemaphore.acquire();
 
@@ -183,7 +185,9 @@ async function fetchSingleUrl(
   try {
     console.log(`Fetching URL: ${url}`);
     page = await browser.newPage();
-    await blocker.enableBlockingInPage(page as any);
+    if (enableAdblock) {
+      await blocker.enableBlockingInPage(page as any);
+    }
 
     const timeout = goToOptions.timeout || 30000;
     const currentPage = page;
@@ -225,6 +229,7 @@ async function fetchSingleUrlWithRetry(
   url: string,
   selector: string,
   goToOptions: GoToOptions,
+  enableAdblock: boolean,
   maxRetries: number = 3
 ): Promise<string> {
   let lastError: Error | unknown;
@@ -237,7 +242,8 @@ async function fetchSingleUrlWithRetry(
         blocker,
         url,
         selector,
-        goToOptions
+        goToOptions,
+        enableAdblock
       );
       return content;
     } catch (error) {
@@ -265,7 +271,8 @@ async function fetchRawResponse(
   browser: Browser,
   blocker: PuppeteerBlocker,
   url: string,
-  goToOptions: GoToOptions
+  goToOptions: GoToOptions,
+  enableAdblock: boolean
 ): Promise<RawResponse> {
   await pageSemaphore.acquire();
 
@@ -273,7 +280,9 @@ async function fetchRawResponse(
   try {
     console.log(`Fetching raw URL: ${url}`);
     page = await browser.newPage();
-    await blocker.enableBlockingInPage(page as any);
+    if (enableAdblock) {
+      await blocker.enableBlockingInPage(page as any);
+    }
 
     const response = await page.goto(url, goToOptions);
     if (!response) {
@@ -304,7 +313,7 @@ async function fetchRawResponse(
 }
 
 export async function getPageContent(options: Options) {
-  const { url, selector, ...goToOptions } = options;
+  const { url, selector, adblock = true, ...goToOptions } = options;
   const { browser, blocker } = await getBrowser();
 
   const urls = Array.isArray(url) ? url : [url];
@@ -316,7 +325,8 @@ export async function getPageContent(options: Options) {
         blocker,
         currentUrl,
         selector,
-        goToOptions
+        goToOptions,
+        adblock
       )
     )
   );
@@ -327,12 +337,12 @@ export async function getPageContent(options: Options) {
 export async function getRawResponse(
   options: Omit<Options, "selector">
 ): Promise<RawResponse> {
-  const { url, ...goToOptions } = options;
+  const { url, adblock = true, ...goToOptions } = options;
   const { browser, blocker } = await getBrowser();
 
   if (Array.isArray(url)) {
     throw new Error("Raw response only supports a single URL");
   }
 
-  return fetchRawResponse(browser, blocker, url, goToOptions);
+  return fetchRawResponse(browser, blocker, url, goToOptions, adblock);
 }
