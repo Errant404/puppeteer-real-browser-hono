@@ -11,7 +11,7 @@ const shouldReturnRaw = (rawParam?: string | string[]) => {
     return false;
   }
 
-  const normalizedRawValue = String(rawValue).toLowerCase();
+  const normalizedRawValue = rawValue.toLowerCase();
   return (
     normalizedRawValue !== "false" &&
     normalizedRawValue !== "0"
