@@ -7,10 +7,13 @@ const app = new Hono();
 
 const isRawResponseRequested = (rawParam?: string | string[]) => {
   const rawValue = Array.isArray(rawParam) ? rawParam[0] : rawParam;
+  if (rawValue === undefined) {
+    return false;
+  }
+
   const normalizedRawValue =
     typeof rawValue === "string" ? rawValue.toLowerCase() : rawValue;
   return (
-    normalizedRawValue !== undefined &&
     normalizedRawValue !== "false" &&
     normalizedRawValue !== "0"
   );
@@ -19,7 +22,7 @@ const isRawResponseRequested = (rawParam?: string | string[]) => {
 app.get("/", async (c) => {
   try {
     const queryParams = c.req.query();
-    const { url, selector, raw: rawParam, ...goToOptions } = queryParams;
+    const { url, selector, raw: rawParam, ...options } = queryParams;
     const shouldReturnRaw = isRawResponseRequested(rawParam);
 
     if (!url) {
@@ -36,14 +39,14 @@ app.get("/", async (c) => {
       });
     }
 
-    let result = responseCache.get(url, goToOptions);
+    let result = responseCache.get(url, options);
     let fromCache = false;
 
     if (result) {
       fromCache = true;
     } else {
-      result = await getPageContent({ url, selector, ...goToOptions });
-      responseCache.set(url, goToOptions, result);
+      result = await getPageContent({ url, selector, ...options });
+      responseCache.set(url, options, result);
     }
 
     if (shouldReturnRaw) {
