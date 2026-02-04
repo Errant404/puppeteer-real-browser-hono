@@ -11,8 +11,7 @@ const isRawResponseRequested = (rawParam?: string | string[]) => {
     return false;
   }
 
-  const normalizedRawValue =
-    typeof rawValue === "string" ? rawValue.toLowerCase() : rawValue;
+  const normalizedRawValue = String(rawValue).toLowerCase();
   return (
     normalizedRawValue !== "false" &&
     normalizedRawValue !== "0"
