@@ -128,6 +128,12 @@ Some sites block content when ad blockers are detected. Disable the ad blocker f
 curl "http://localhost:3000?url=https://example.com&raw=1&adblock=0"
 ```
 
+Disable ad blocking for selector-based requests:
+
+```bash
+curl "http://localhost:3000?url=https://example.com&selector=.main-content&adblock=0"
+```
+
 ### Response Format
 
 #### Success Response
