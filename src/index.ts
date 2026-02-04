@@ -45,7 +45,6 @@ app.get("/", async (c) => {
     } = queryParams;
     const returnRaw = shouldReturnRaw(rawParam);
     const enableAdblock = shouldEnableAdblock(adblockParam);
-    const cacheOptions = { ...options, adblock: enableAdblock };
 
     if (!url) {
       return c.json({
@@ -81,6 +80,7 @@ app.get("/", async (c) => {
       });
     }
 
+    const cacheOptions = { ...options, adblock: enableAdblock };
     let result = responseCache.get(url, cacheOptions);
     let fromCache = false;
 
