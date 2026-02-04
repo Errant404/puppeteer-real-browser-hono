@@ -75,6 +75,7 @@ GET /
 | `selector`  | string             | No       | CSS selector to wait for before capturing content                                                          |
 | `timeout`   | number             | No       | Navigation timeout in milliseconds (default: 30000)                                                        |
 | `waitUntil` | string             | No       | When to consider navigation succeeded. Options: `load`, `domcontentloaded`, `networkidle0`, `networkidle2` |
+| `raw`       | string             | No       | Return the raw data array when the value is not `false` or `0`                                              |
 
 ### Examples
 
@@ -110,6 +111,14 @@ Customize navigation behavior:
 curl "http://localhost:3000?url=https://example.com&waitUntil=networkidle2&timeout=60000"
 ```
 
+#### Raw Data Response
+
+Return the raw data array:
+
+```bash
+curl "http://localhost:3000?url=https://example.com&raw=1"
+```
+
 ### Response Format
 
 #### Success Response
@@ -129,6 +138,12 @@ curl "http://localhost:3000?url=https://example.com&waitUntil=networkidle2&timeo
   "success": false,
   "error": "Error message"
 }
+```
+
+#### Raw Response
+
+```json
+["<html>...</html>"]
 ```
 
 ## Project Structure

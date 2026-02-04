@@ -8,7 +8,14 @@ const app = new Hono();
 app.get("/", async (c) => {
   try {
     const queryParams = c.req.query();
-    const { url, selector, ...options } = queryParams;
+    const { url, selector, raw, ...options } = queryParams;
+    const rawValue = Array.isArray(raw) ? raw[0] : raw;
+    const normalizedRawValue =
+      typeof rawValue === "string" ? rawValue.toLowerCase() : rawValue;
+    const shouldReturnRaw =
+      normalizedRawValue !== undefined &&
+      normalizedRawValue !== "false" &&
+      normalizedRawValue !== "0";
 
     if (!url) {
       return c.json({
@@ -32,6 +39,10 @@ app.get("/", async (c) => {
     } else {
       result = await getPageContent({ url, selector, ...options });
       responseCache.set(url, options, result);
+    }
+
+    if (shouldReturnRaw) {
+      return c.json(result);
     }
 
     return c.json({
