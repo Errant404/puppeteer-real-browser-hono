@@ -31,31 +31,31 @@ app.get("/", async (c) => {
       });
     }
 
-    if (returnRaw && selector) {
-      return c.json(
-        {
-          success: false,
-          error: "raw parameter cannot be used with selector",
-        },
-        400
-      );
-    }
+    if (returnRaw) {
+      if (selector !== undefined) {
+        return c.json(
+          {
+            success: false,
+            error: "raw parameter cannot be used with selector",
+          },
+          400
+        );
+      }
 
-    if (!selector && !returnRaw) {
+      if (Array.isArray(url)) {
+        return c.json(
+          {
+            success: false,
+            error: "raw parameter only supports a single URL",
+          },
+          400
+        );
+      }
+    } else if (!selector) {
       return c.json({
         success: false,
         error: "selector parameter is required",
       });
-    }
-
-    if (returnRaw && Array.isArray(url)) {
-      return c.json(
-        {
-          success: false,
-          error: "raw parameter only supports a single URL",
-        },
-        400
-      );
     }
 
     let result = responseCache.get(url, options);
