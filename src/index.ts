@@ -5,7 +5,7 @@ import { responseCache } from "./cache.js";
 
 const app = new Hono();
 
-const parseRawParameter = (rawParam?: string | string[]) => {
+const isRawParameterEnabled = (rawParam?: string | string[]) => {
   const rawValue = Array.isArray(rawParam) ? rawParam[0] : rawParam;
   const normalizedRawValue =
     typeof rawValue === "string" ? rawValue.toLowerCase() : rawValue;
@@ -20,7 +20,7 @@ app.get("/", async (c) => {
   try {
     const queryParams = c.req.query();
     const { url, selector, raw: rawParam, ...goToOptions } = queryParams;
-    const shouldReturnRaw = parseRawParameter(rawParam);
+    const shouldReturnRaw = isRawParameterEnabled(rawParam);
 
     if (!url) {
       return c.json({
