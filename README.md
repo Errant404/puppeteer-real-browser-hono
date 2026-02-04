@@ -75,7 +75,7 @@ GET /
 | `selector`  | string             | No       | CSS selector to wait for before capturing content                                                          |
 | `timeout`   | number             | No       | Navigation timeout in milliseconds (default: 30000)                                                        |
 | `waitUntil` | string             | No       | When to consider navigation succeeded. Options: `load`, `domcontentloaded`, `networkidle0`, `networkidle2` |
-| `raw`       | string             | No       | When set to any value except `false` or `0` (case-insensitive), returns the unwrapped data array; omit for wrapped response |
+| `raw`       | string             | No       | When set to any value except `false` or `0` (case-insensitive), returns the unwrapped data array (including empty values); omit for wrapped response |
 
 ### Examples
 
