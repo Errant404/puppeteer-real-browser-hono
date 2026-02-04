@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { getPageContent, closeBrowser } from "./lib.js";
+import { getPageContent, getRawResponse, closeBrowser } from "./lib.js";
 import { responseCache } from "./cache.js";
 
 const app = new Hono();
@@ -31,31 +31,58 @@ app.get("/", async (c) => {
       });
     }
 
-    if (!selector) {
+    if (returnRaw && selector) {
+      return c.json(
+        {
+          success: false,
+          error: "raw parameter cannot be used with selector",
+        },
+        400
+      );
+    }
+
+    if (!selector && !returnRaw) {
       return c.json({
         success: false,
         error: "selector parameter is required",
       });
     }
 
+    if (returnRaw && Array.isArray(url)) {
+      return c.json(
+        {
+          success: false,
+          error: "raw parameter only supports a single URL",
+        },
+        400
+      );
+    }
+
     let result = responseCache.get(url, options);
     let fromCache = false;
 
-    if (result) {
-      fromCache = true;
-    } else {
-      result = await getPageContent({ url, selector, ...options });
-      responseCache.set(url, options, result);
+    if (!returnRaw) {
+      if (result) {
+        fromCache = true;
+      } else {
+        result = await getPageContent({ url, selector, ...options });
+        responseCache.set(url, options, result);
+      }
+
+      return c.json({
+        success: true,
+        fromCache,
+        data: result,
+      });
     }
 
-    if (returnRaw) {
-      return c.json(result);
-    }
-
-    return c.json({
-      success: true,
-      fromCache,
-      data: result,
+    const rawResponse = await getRawResponse({ url, ...options });
+    const headers = rawResponse.contentType
+      ? { "Content-Type": rawResponse.contentType }
+      : undefined;
+    return new Response(Buffer.from(rawResponse.body), {
+      status: rawResponse.status,
+      headers,
     });
   } catch (error) {
     return c.json(

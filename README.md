@@ -72,10 +72,10 @@ GET /
 | Parameter   | Type               | Required | Description                                                                                                |
 | ----------- | ------------------ | -------- | ---------------------------------------------------------------------------------------------------------- |
 | `url`       | string or string[] | Yes      | The URL(s) to fetch content from                                                                           |
-| `selector`  | string             | No       | CSS selector to wait for before capturing content                                                          |
+| `selector`  | string             | No       | CSS selector to wait for before capturing content (cannot be used with `raw`)                              |
 | `timeout`   | number             | No       | Navigation timeout in milliseconds (default: 30000)                                                        |
 | `waitUntil` | string             | No       | When to consider navigation succeeded. Options: `load`, `domcontentloaded`, `networkidle0`, `networkidle2` |
-| `raw`       | string             | No       | When set to any value except `false` or `0` (case-insensitive), returns the unwrapped data array (including empty values); omit for wrapped response |
+| `raw`       | string             | No       | When set to any value except `false` or `0` (case-insensitive), returns the original response body (cannot be used with `selector`) |
 
 ### Examples
 
@@ -111,9 +111,9 @@ Customize navigation behavior:
 curl "http://localhost:3000?url=https://example.com&waitUntil=networkidle2&timeout=60000"
 ```
 
-#### Raw Data Response
+#### Raw Response
 
-Return the raw data array:
+Return the original response body:
 
 ```bash
 curl "http://localhost:3000?url=https://example.com&raw=1"
@@ -142,9 +142,7 @@ curl "http://localhost:3000?url=https://example.com&raw=1"
 
 #### Raw Response
 
-```json
-["<html>...</html>"]
-```
+Returns the original response body and `Content-Type` from the upstream response. If the response is XML, text, or binary, the raw bytes are returned.
 
 ## Project Structure
 

@@ -77,6 +77,12 @@ export type Options = {
   selector: string;
 } & GoToOptions;
 
+export type RawResponse = {
+  body: Uint8Array;
+  contentType?: string;
+  status: number;
+};
+
 async function tryGetHtmlFromResponse(
   page: Page,
   url: string,
@@ -255,6 +261,48 @@ async function fetchSingleUrlWithRetry(
   throw lastError;
 }
 
+async function fetchRawResponse(
+  browser: Browser,
+  blocker: PuppeteerBlocker,
+  url: string,
+  goToOptions: GoToOptions
+): Promise<RawResponse> {
+  await pageSemaphore.acquire();
+
+  let page: Page | undefined;
+  try {
+    console.log(`Fetching raw URL: ${url}`);
+    page = await browser.newPage();
+    await blocker.enableBlockingInPage(page as any);
+
+    const response = await page.goto(url, goToOptions);
+    if (!response) {
+      throw new Error(`No response received for ${url}`);
+    }
+
+    const body = await response.buffer();
+    const headers = response.headers();
+
+    return {
+      body,
+      contentType: headers["content-type"],
+      status: response.status(),
+    };
+  } finally {
+    if (page) {
+      try {
+        if (!page.isClosed()) {
+          await page.close();
+        }
+      } catch (err) {
+        console.error(`Failed to close page for ${url}:`, err);
+      }
+    }
+
+    pageSemaphore.release();
+  }
+}
+
 export async function getPageContent(options: Options) {
   const { url, selector, ...goToOptions } = options;
   const { browser, blocker } = await getBrowser();
@@ -274,4 +322,17 @@ export async function getPageContent(options: Options) {
   );
 
   return results;
+}
+
+export async function getRawResponse(
+  options: Omit<Options, "selector">
+): Promise<RawResponse> {
+  const { url, ...goToOptions } = options;
+  const { browser, blocker } = await getBrowser();
+
+  if (Array.isArray(url)) {
+    throw new Error("Raw response only supports a single URL");
+  }
+
+  return fetchRawResponse(browser, blocker, url, goToOptions);
 }
