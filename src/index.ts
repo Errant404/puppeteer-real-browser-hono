@@ -5,7 +5,7 @@ import { responseCache } from "./cache.js";
 
 const app = new Hono();
 
-const isRawResponseRequested = (rawParam?: string | string[]) => {
+const shouldReturnRaw = (rawParam?: string | string[]) => {
   const rawValue = Array.isArray(rawParam) ? rawParam[0] : rawParam;
   if (rawValue === undefined) {
     return false;
@@ -22,7 +22,7 @@ app.get("/", async (c) => {
   try {
     const queryParams = c.req.query();
     const { url, selector, raw: rawParam, ...options } = queryParams;
-    const shouldReturnRaw = isRawResponseRequested(rawParam);
+    const returnRaw = shouldReturnRaw(rawParam);
 
     if (!url) {
       return c.json({
@@ -48,7 +48,7 @@ app.get("/", async (c) => {
       responseCache.set(url, options, result);
     }
 
-    if (shouldReturnRaw) {
+    if (returnRaw) {
       return c.json(result);
     }
 
